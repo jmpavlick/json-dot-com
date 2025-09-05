@@ -1,7 +1,7 @@
 {
-  "name": "REPLACEME-AUTHOR-SLASH-REPO",
+  "name": "jmpavlick/json-dot-com",
   "version": "0.0.1",
-  "description": "REPLACEME",
+  "description": "href is a universal message bus now",
   "devDependencies": {
     "elm-review": "^2.10.3",
     "elm-test": "^0.19.1-revision9",
@@ -14,5 +14,9 @@
     "postinstall": "elm-tooling install"
   },
   "author": "REPLACEME",
-  "license": "BSD-3-Clause"
+  "license": "BSD-3-Clause",
+  "dependencies": {
+    "elm-doc-preview": "^6.0.1",
+    "elmi-to-json": "^1.4.3"
+  }
 }
