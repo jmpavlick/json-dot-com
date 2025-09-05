@@ -1,7 +1,7 @@
 module Json.DotCom exposing
-    ( href, onUrlRequest
-    , handleUrlRequest
-    , toHref, parseHref, parseDecodeHref
+    ( encodeAsHref, href
+    , onUrlRequest, handleUrlRequest
+    , parseHref, parseDecodeHref
     )
 
 {-|
@@ -9,11 +9,20 @@ module Json.DotCom exposing
 
 # IT'S JSON DOT COM BABY
 
-@docs href, onUrlRequest
 
-@docs handleUrlRequest
+# Make hrefs
 
-@docs toHref, parseHref, parseDecodeHref
+@docs encodeAsHref, href
+
+
+# Handle hrefs
+
+@docs onUrlRequest, handleUrlRequest
+
+
+# Roll your own
+
+@docs parseHref, parseDecodeHref
 
 -}
 
@@ -26,11 +35,18 @@ import Parser exposing ((|.), (|=))
 import Url
 
 
-{-| this is a doc comment
+{-| turn a `Json.Encode.Value` into a lowercase-m `msg`
 -}
 href : Json.Encode.Value -> Html.Attribute msg
-href value =
-    Html.Attributes.href <| jsonDotCom ++ Json.Encode.encode 0 value
+href =
+    toHref { path = "" }
+
+
+{-| this is a doc comment
+-}
+encodeAsHref : (a -> Json.Encode.Value) -> a -> Html.Attribute msg
+encodeAsHref encoder value =
+    href <| encoder value
 
 
 {-| this is a doc comment
@@ -48,38 +64,16 @@ onUrlRequest decoder urlRequest =
 
 {-| this is a doc comment
 -}
-toHref : (a -> Json.Encode.Value) -> a -> Html.Attribute msg
-toHref encoder value =
-    href <| encoder value
-
-
-{-| this is a doc comment
--}
 parseHref : String -> Maybe String
-parseHref hrefStr =
-    Result.toMaybe <|
-        Parser.run
-            (Parser.getChompedString <|
-                Parser.succeed ()
-                    |. Parser.token jsonDotCom
-                    |. Parser.chompWhile (always True)
-            )
-            hrefStr
+parseHref =
+    toParseHref { path = "" }
 
 
 {-| this is a doc comment
 -}
 parseDecodeHref : Json.Decode.Decoder a -> String -> Result Json.Decode.Error a
-parseDecodeHref decoder hrefStr =
-    case parseHref hrefStr of
-        Nothing ->
-            Err <|
-                Json.Decode.Failure
-                    "The input string was not a valid json-dot-com-encoded value. I couldn't find 'https://json.com/' anywhere!"
-                    (Json.Encode.string hrefStr)
-
-        Just jsonStr ->
-            Json.Decode.decodeString decoder jsonStr
+parseDecodeHref =
+    toParseDecodeHref { path = "" }
 
 
 {-| this is a doc comment
@@ -112,10 +106,56 @@ handleUrlRequest { onBrowserInternal, onBrowserExternal, onDecodeSucceeded, onDe
                             onDecodeSucceeded hellYeah
 
 
+toParseHref : { path : String } -> String -> Maybe String
+toParseHref { path } hrefStr =
+    Result.toMaybe <|
+        Parser.run
+            (Parser.getChompedString <|
+                Parser.succeed ()
+                    |. Parser.token (toToken path)
+                    |. Parser.chompWhile (always True)
+            )
+            hrefStr
+
+
+toParseDecodeHref : { path : String } -> Json.Decode.Decoder a -> String -> Result Json.Decode.Error a
+toParseDecodeHref path decoder hrefStr =
+    case toParseHref path hrefStr of
+        Nothing ->
+            Err <|
+                Json.Decode.Failure
+                    "The input string was not a valid json-dot-com-encoded value. I couldn't find 'https://json.com/' anywhere!"
+                    (Json.Encode.string hrefStr)
+
+        Just jsonStr ->
+            Json.Decode.decodeString decoder jsonStr
+
+
+{-| turn a `Json.Encode.Value` into a lowercase-m `msg`
+-}
+toHref : { path : String } -> Json.Encode.Value -> Html.Attribute msg
+toHref { path } value =
+    Html.Attributes.href <| toToken path ++ Json.Encode.encode 0 value
+
+
+{-| this is a doc comment
+-}
+toEncodeAsHref : { path : String } -> (a -> Json.Encode.Value) -> a -> Html.Attribute msg
+toEncodeAsHref path encoder value =
+    toHref path <| encoder value
+
+
 
 -- INTERNALS
 
 
-jsonDotCom : String
-jsonDotCom =
-    "https://json.com/"
+toToken : String -> String
+toToken path =
+    (case path of
+        "" ->
+            identity
+
+        str ->
+            \j -> j ++ str ++ "/"
+    )
+        "https://json.com/"
