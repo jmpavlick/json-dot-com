@@ -1,7 +1,8 @@
 module Json.DotCom exposing
     ( encodeAsHref, href
     , onUrlRequest, handleUrlRequest
-    , parseHref, parseDecodeHref
+    , toEncodeAsHref, toHref
+    , toHandleUrlRequest, toOnUrlRequest
     )
 
 {-|
@@ -20,9 +21,14 @@ module Json.DotCom exposing
 @docs onUrlRequest, handleUrlRequest
 
 
-# Roll your own
+# Roll your own hrefs
 
-@docs parseHref, parseDecodeHref
+@docs toEncodeAsHref, toHref
+
+
+# Roll your own handlers
+
+@docs toHandleUrlRequest, toOnUrlRequest
 
 -}
 
@@ -35,22 +41,19 @@ import Parser exposing ((|.), (|=))
 import Url
 
 
-{-| turn a `Json.Encode.Value` into a lowercase-m `msg`
--}
+{-| -}
 href : Json.Encode.Value -> Html.Attribute msg
 href =
     toHref { path = "" }
 
 
-{-| this is a doc comment
--}
+{-| -}
 encodeAsHref : (a -> Json.Encode.Value) -> a -> Html.Attribute msg
 encodeAsHref encoder value =
     href <| encoder value
 
 
-{-| this is a doc comment
--}
+{-| -}
 onUrlRequest : Json.Decode.Decoder a -> Browser.UrlRequest -> Result Browser.UrlRequest a
 onUrlRequest decoder urlRequest =
     case urlRequest of
@@ -60,6 +63,18 @@ onUrlRequest decoder urlRequest =
         Browser.External someExternalUrl ->
             Result.mapError (always urlRequest) <|
                 parseDecodeHref decoder someExternalUrl
+
+
+{-| -}
+toOnUrlRequest : { path : String } -> Json.Decode.Decoder a -> Browser.UrlRequest -> Result Browser.UrlRequest a
+toOnUrlRequest path decoder urlRequest =
+    case urlRequest of
+        Browser.Internal _ ->
+            Err urlRequest
+
+        Browser.External someExternalUrl ->
+            Result.mapError (always urlRequest) <|
+                toParseDecodeHref path decoder someExternalUrl
 
 
 {-| this is a doc comment
@@ -76,8 +91,7 @@ parseDecodeHref =
     toParseDecodeHref { path = "" }
 
 
-{-| this is a doc comment
--}
+{-| -}
 handleUrlRequest :
     { onBrowserInternal : Url.Url -> b
     , onBrowserExternal : String -> b
@@ -94,6 +108,37 @@ handleUrlRequest { onBrowserInternal, onBrowserExternal, onDecodeSucceeded, onDe
 
         Browser.External someExternalUrl ->
             case parseHref someExternalUrl of
+                Nothing ->
+                    onBrowserExternal someExternalUrl
+
+                Just jsonStr ->
+                    case Json.Decode.decodeString decoder jsonStr of
+                        Err decodeErr ->
+                            onDecodeFailed decodeErr
+
+                        Ok hellYeah ->
+                            onDecodeSucceeded hellYeah
+
+
+{-| -}
+toHandleUrlRequest :
+    { path : String }
+    ->
+        { onBrowserInternal : Url.Url -> b
+        , onBrowserExternal : String -> b
+        , onDecodeSucceeded : a -> b
+        , onDecodeFailed : Json.Decode.Error -> b
+        }
+    -> Json.Decode.Decoder a
+    -> Browser.UrlRequest
+    -> b
+toHandleUrlRequest path { onBrowserInternal, onBrowserExternal, onDecodeSucceeded, onDecodeFailed } decoder urlRequest =
+    case urlRequest of
+        Browser.Internal url ->
+            onBrowserInternal url
+
+        Browser.External someExternalUrl ->
+            case toParseHref path someExternalUrl of
                 Nothing ->
                     onBrowserExternal someExternalUrl
 
@@ -131,15 +176,13 @@ toParseDecodeHref path decoder hrefStr =
             Json.Decode.decodeString decoder jsonStr
 
 
-{-| turn a `Json.Encode.Value` into a lowercase-m `msg`
--}
+{-| -}
 toHref : { path : String } -> Json.Encode.Value -> Html.Attribute msg
 toHref { path } value =
     Html.Attributes.href <| toToken path ++ Json.Encode.encode 0 value
 
 
-{-| this is a doc comment
--}
+{-| -}
 toEncodeAsHref : { path : String } -> (a -> Json.Encode.Value) -> a -> Html.Attribute msg
 toEncodeAsHref path encoder value =
     toHref path <| encoder value
