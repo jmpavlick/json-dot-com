@@ -6,6 +6,7 @@ import Endo exposing (Endo)
 import Html exposing (..)
 import Html.Attributes exposing (href)
 import Json.DotCom
+import Modal
 import Set exposing (Set)
 import Url
 
@@ -61,18 +62,12 @@ update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
         OnUrlRequest urlRequest ->
-            case urlRequest of
-                Browser.Internal url ->
-                    ( { model
-                        | xorSet =
-                            Maybe.withDefault model.xorSet <|
-                                Maybe.map (\k -> toggle k model.xorSet) url.fragment
-                      }
-                    , Cmd.none
-                    )
-
-                Browser.External external ->
-                    ( model, Browser.Navigation.load external )
+            Json.DotCom.batch
+                { onBrowserInternal = \url -> ( { model | url = url }, Browser.Navigation.pushUrl model.key (Url.toString url) )
+                , onBrowserExternal = \str -> ( model, Browser.Navigation.load str )
+                }
+                [ Modal.onUrlRequest model ]
+                urlRequest
 
         OnUrlChange url ->
             ( { model | url = url }, Cmd.none )
