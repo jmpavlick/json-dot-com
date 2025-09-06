@@ -10,13 +10,16 @@
     "prettier": "^3.2.5"
   },
   "scripts": {
-    "test": "elm-verify-examples --run-tests && elm-test",
-    "postinstall": "elm-tooling install"
+    "dev": "cd example; elm-go src/Main.elm --open --hot --pushstate --port=3000 -- --output=main.js --debug",
+    "docs": "elm-doc-preview",
+    "postinstall": "elm-tooling install",
+    "test": "elm-verify-examples --run-tests && elm-test"
   },
-  "author": "REPLACEME",
-  "license": "BSD-3-Clause",
+  "author": "jmpavlick",
+  "license": "MIT",
   "dependencies": {
     "elm-doc-preview": "^6.0.1",
+    "elm-go": "^5.0.20",
     "elmi-to-json": "^1.4.3"
   }
 }
