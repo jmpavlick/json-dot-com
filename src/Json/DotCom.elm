@@ -1,7 +1,7 @@
 module Json.DotCom exposing
     ( encodeAsHref, href
     , onEncodedUrlRequest, handleEncodedUrlRequest
-    , urlRequest, handleUrlRequest
+    , onUrlRequest, handleUrlRequest
     , toEncodeAsHref, toHref
     , toHandleEncodedUrlRequest, toOnEncodedUrlRequest
     , toUrlRequest, toHandleUrlRequest
@@ -25,7 +25,7 @@ module Json.DotCom exposing
 
 # Handle hrefs (string payload)
 
-@docs urlRequest, handleUrlRequest
+@docs onUrlRequest, handleUrlRequest
 
 
 # Roll your own hrefs
@@ -133,8 +133,8 @@ handleEncodedUrlRequest { onBrowserInternal, onBrowserExternal, onDecodeSucceede
 
 
 {-| -}
-urlRequest : Browser.UrlRequest -> Result Browser.UrlRequest String
-urlRequest request =
+onUrlRequest : Browser.UrlRequest -> Result Browser.UrlRequest String
+onUrlRequest request =
     case request of
         Browser.Internal _ ->
             Err request
@@ -294,3 +294,16 @@ toToken path =
             \j -> j ++ str ++ "/"
     )
         "https://json.com/"
+
+
+
+--
+
+
+batch :
+    { onBrowserInternal : Url.Url -> a, onBrowserExternal : String -> a }
+    -> List (Browser.UrlRequest -> Result Browser.UrlRequest a)
+    -> Browser.UrlRequest
+    -> a
+batch { onBrowserInternal, onBrowserExternal } matchers bUrlRequest =
+    Debug.todo ""
