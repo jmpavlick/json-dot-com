@@ -1,5 +1,6 @@
 port module Modal exposing (..)
 
+import Browser
 import Html exposing (..)
 import Html.Attributes exposing (class, id)
 import Json.DotCom
@@ -9,6 +10,10 @@ import Set exposing (Set)
 key : String
 key =
     "big-ol-modal"
+
+
+
+-- VIEW
 
 
 view : String -> List (Html msg) -> Html msg
@@ -37,6 +42,39 @@ launcher title body =
         [ a [] [ text "Edit" ]
         , view title body
         ]
+
+
+
+-- LIFECYCLE
+
+
+type alias App x =
+    { x | xorSet : Set String }
+
+
+onUrlRequest : App x -> Browser.UrlRequest -> Result Browser.UrlRequest ( App x, Cmd msg )
+onUrlRequest ({ xorSet } as app) =
+    let
+        update : ( App x, Cmd msg )
+        update =
+            if Set.member key xorSet then
+                ( { app | xorSet = Set.remove key xorSet }
+                , closeDialog key
+                )
+
+            else
+                ( { app | xorSet = Set.insert key xorSet }
+                , openDialog key
+                )
+    in
+    Json.DotCom.onUrlRequest
+        (\str ->
+            if str == key then
+                Nothing
+
+            else
+                Just update
+        )
 
 
 
