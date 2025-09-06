@@ -1,8 +1,10 @@
 module Json.DotCom exposing
     ( encodeAsHref, href
-    , onUrlRequest, handleUrlRequest
+    , onEncodedUrlRequest, handleEncodedUrlRequest
+    , urlRequest, handleUrlRequest
     , toEncodeAsHref, toHref
-    , toHandleUrlRequest, toOnUrlRequest
+    , toHandleEncodedUrlRequest, toOnEncodedUrlRequest
+    , toUrlRequest, toHandleUrlRequest
     )
 
 {-|
@@ -18,7 +20,12 @@ module Json.DotCom exposing
 
 # Handle hrefs
 
-@docs onUrlRequest, handleUrlRequest
+@docs onEncodedUrlRequest, handleEncodedUrlRequest
+
+
+# Handle hrefs (string payload)
+
+@docs urlRequest, handleUrlRequest
 
 
 # Roll your own hrefs
@@ -28,7 +35,12 @@ module Json.DotCom exposing
 
 # Roll your own handlers
 
-@docs toHandleUrlRequest, toOnUrlRequest
+@docs toHandleEncodedUrlRequest, toOnEncodedUrlRequest
+
+
+# Roll your own handlers (string payload)
+
+@docs toUrlRequest, toHandleUrlRequest
 
 -}
 
@@ -42,38 +54,38 @@ import Url
 
 
 {-| -}
-href : Json.Encode.Value -> Html.Attribute msg
-href =
-    toHref { path = "" }
+href : String -> Html.Attribute msg
+href str =
+    Html.Attributes.href <| toToken str
 
 
 {-| -}
 encodeAsHref : (a -> Json.Encode.Value) -> a -> Html.Attribute msg
 encodeAsHref encoder value =
-    href <| encoder value
+    href <| Json.Encode.encode 0 (encoder value)
 
 
 {-| -}
-onUrlRequest : Json.Decode.Decoder a -> Browser.UrlRequest -> Result Browser.UrlRequest a
-onUrlRequest decoder urlRequest =
-    case urlRequest of
+onEncodedUrlRequest : Json.Decode.Decoder a -> Browser.UrlRequest -> Result Browser.UrlRequest a
+onEncodedUrlRequest decoder request =
+    case request of
         Browser.Internal _ ->
-            Err urlRequest
+            Err request
 
         Browser.External someExternalUrl ->
-            Result.mapError (always urlRequest) <|
+            Result.mapError (always request) <|
                 parseDecodeHref decoder someExternalUrl
 
 
 {-| -}
-toOnUrlRequest : { path : String } -> Json.Decode.Decoder a -> Browser.UrlRequest -> Result Browser.UrlRequest a
-toOnUrlRequest path decoder urlRequest =
-    case urlRequest of
+toOnEncodedUrlRequest : { path : String } -> Json.Decode.Decoder a -> Browser.UrlRequest -> Result Browser.UrlRequest a
+toOnEncodedUrlRequest path decoder request =
+    case request of
         Browser.Internal _ ->
-            Err urlRequest
+            Err request
 
         Browser.External someExternalUrl ->
-            Result.mapError (always urlRequest) <|
+            Result.mapError (always request) <|
                 toParseDecodeHref path decoder someExternalUrl
 
 
@@ -92,7 +104,7 @@ parseDecodeHref =
 
 
 {-| -}
-handleUrlRequest :
+handleEncodedUrlRequest :
     { onBrowserInternal : Url.Url -> b
     , onBrowserExternal : String -> b
     , onDecodeSucceeded : a -> b
@@ -101,8 +113,8 @@ handleUrlRequest :
     -> Json.Decode.Decoder a
     -> Browser.UrlRequest
     -> b
-handleUrlRequest { onBrowserInternal, onBrowserExternal, onDecodeSucceeded, onDecodeFailed } decoder urlRequest =
-    case urlRequest of
+handleEncodedUrlRequest { onBrowserInternal, onBrowserExternal, onDecodeSucceeded, onDecodeFailed } decoder request =
+    case request of
         Browser.Internal url ->
             onBrowserInternal url
 
@@ -121,7 +133,87 @@ handleUrlRequest { onBrowserInternal, onBrowserExternal, onDecodeSucceeded, onDe
 
 
 {-| -}
+urlRequest : Browser.UrlRequest -> Result Browser.UrlRequest String
+urlRequest request =
+    case request of
+        Browser.Internal _ ->
+            Err request
+
+        Browser.External someExternalUrl ->
+            case parseHref someExternalUrl of
+                Nothing ->
+                    Err request
+
+                Just jsonStr ->
+                    Ok jsonStr
+
+
+{-| -}
+toUrlRequest : { path : String } -> Browser.UrlRequest -> Result Browser.UrlRequest String
+toUrlRequest path request =
+    case request of
+        Browser.Internal _ ->
+            Err request
+
+        Browser.External someExternalUrl ->
+            case toParseHref path someExternalUrl of
+                Nothing ->
+                    Err request
+
+                Just jsonStr ->
+                    Ok jsonStr
+
+
+{-| -}
+handleUrlRequest :
+    { onBrowserInternal : Url.Url -> b
+    , onBrowserExternal : String -> b
+    , onStringSucceeded : String -> b
+    , onStringFailed : Json.Decode.Error -> b
+    }
+    -> Browser.UrlRequest
+    -> b
+handleUrlRequest { onBrowserInternal, onBrowserExternal, onStringSucceeded, onStringFailed } request =
+    case request of
+        Browser.Internal url ->
+            onBrowserInternal url
+
+        Browser.External someExternalUrl ->
+            case parseHref someExternalUrl of
+                Nothing ->
+                    onBrowserExternal someExternalUrl
+
+                Just jsonStr ->
+                    onStringSucceeded jsonStr
+
+
+{-| -}
 toHandleUrlRequest :
+    { path : String }
+    ->
+        { onBrowserInternal : Url.Url -> b
+        , onBrowserExternal : String -> b
+        , onStringSucceeded : String -> b
+        , onStringFailed : Json.Decode.Error -> b
+        }
+    -> Browser.UrlRequest
+    -> b
+toHandleUrlRequest path { onBrowserInternal, onBrowserExternal, onStringSucceeded, onStringFailed } request =
+    case request of
+        Browser.Internal url ->
+            onBrowserInternal url
+
+        Browser.External someExternalUrl ->
+            case toParseHref path someExternalUrl of
+                Nothing ->
+                    onBrowserExternal someExternalUrl
+
+                Just jsonStr ->
+                    onStringSucceeded jsonStr
+
+
+{-| -}
+toHandleEncodedUrlRequest :
     { path : String }
     ->
         { onBrowserInternal : Url.Url -> b
@@ -132,8 +224,8 @@ toHandleUrlRequest :
     -> Json.Decode.Decoder a
     -> Browser.UrlRequest
     -> b
-toHandleUrlRequest path { onBrowserInternal, onBrowserExternal, onDecodeSucceeded, onDecodeFailed } decoder urlRequest =
-    case urlRequest of
+toHandleEncodedUrlRequest path { onBrowserInternal, onBrowserExternal, onDecodeSucceeded, onDecodeFailed } decoder request =
+    case request of
         Browser.Internal url ->
             onBrowserInternal url
 
