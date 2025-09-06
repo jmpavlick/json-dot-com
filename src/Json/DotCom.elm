@@ -1,10 +1,7 @@
 module Json.DotCom exposing
     ( encodeAsHref, href
-    , onEncodedUrlRequest, handleEncodedUrlRequest
-    , onUrlRequest, handleUrlRequest
-    , toEncodeAsHref, toHref
-    , toHandleEncodedUrlRequest, toOnEncodedUrlRequest
-    , toUrlRequest, toHandleUrlRequest
+    , onUrlRequest, onEncodedUrlRequest
+    , batch
     )
 
 {-|
@@ -18,29 +15,14 @@ module Json.DotCom exposing
 @docs encodeAsHref, href
 
 
-# Handle hrefs
+# Build handlers
 
-@docs onEncodedUrlRequest, handleEncodedUrlRequest
-
-
-# Handle hrefs (string payload)
-
-@docs onUrlRequest, handleUrlRequest
+@docs onUrlRequest, onEncodedUrlRequest
 
 
-# Roll your own hrefs
+# Apply handlers
 
-@docs toEncodeAsHref, toHref
-
-
-# Roll your own handlers
-
-@docs toHandleEncodedUrlRequest, toOnEncodedUrlRequest
-
-
-# Roll your own handlers (string payload)
-
-@docs toUrlRequest, toHandleUrlRequest
+@docs batch
 
 -}
 
@@ -49,6 +31,7 @@ import Html
 import Html.Attributes
 import Json.Decode
 import Json.Encode
+import List.Extra
 import Parser exposing ((|.), (|=))
 import Url
 
@@ -104,35 +87,6 @@ parseDecodeHref =
 
 
 {-| -}
-handleEncodedUrlRequest :
-    { onBrowserInternal : Url.Url -> b
-    , onBrowserExternal : String -> b
-    , onDecodeSucceeded : a -> b
-    , onDecodeFailed : Json.Decode.Error -> b
-    }
-    -> Json.Decode.Decoder a
-    -> Browser.UrlRequest
-    -> b
-handleEncodedUrlRequest { onBrowserInternal, onBrowserExternal, onDecodeSucceeded, onDecodeFailed } decoder request =
-    case request of
-        Browser.Internal url ->
-            onBrowserInternal url
-
-        Browser.External someExternalUrl ->
-            case parseHref someExternalUrl of
-                Nothing ->
-                    onBrowserExternal someExternalUrl
-
-                Just jsonStr ->
-                    case Json.Decode.decodeString decoder jsonStr of
-                        Err decodeErr ->
-                            onDecodeFailed decodeErr
-
-                        Ok hellYeah ->
-                            onDecodeSucceeded hellYeah
-
-
-{-| -}
 onUrlRequest : Browser.UrlRequest -> Result Browser.UrlRequest String
 onUrlRequest request =
     case request of
@@ -162,85 +116,6 @@ toUrlRequest path request =
 
                 Just jsonStr ->
                     Ok jsonStr
-
-
-{-| -}
-handleUrlRequest :
-    { onBrowserInternal : Url.Url -> b
-    , onBrowserExternal : String -> b
-    , onStringSucceeded : String -> b
-    , onStringFailed : Json.Decode.Error -> b
-    }
-    -> Browser.UrlRequest
-    -> b
-handleUrlRequest { onBrowserInternal, onBrowserExternal, onStringSucceeded, onStringFailed } request =
-    case request of
-        Browser.Internal url ->
-            onBrowserInternal url
-
-        Browser.External someExternalUrl ->
-            case parseHref someExternalUrl of
-                Nothing ->
-                    onBrowserExternal someExternalUrl
-
-                Just jsonStr ->
-                    onStringSucceeded jsonStr
-
-
-{-| -}
-toHandleUrlRequest :
-    { path : String }
-    ->
-        { onBrowserInternal : Url.Url -> b
-        , onBrowserExternal : String -> b
-        , onStringSucceeded : String -> b
-        , onStringFailed : Json.Decode.Error -> b
-        }
-    -> Browser.UrlRequest
-    -> b
-toHandleUrlRequest path { onBrowserInternal, onBrowserExternal, onStringSucceeded, onStringFailed } request =
-    case request of
-        Browser.Internal url ->
-            onBrowserInternal url
-
-        Browser.External someExternalUrl ->
-            case toParseHref path someExternalUrl of
-                Nothing ->
-                    onBrowserExternal someExternalUrl
-
-                Just jsonStr ->
-                    onStringSucceeded jsonStr
-
-
-{-| -}
-toHandleEncodedUrlRequest :
-    { path : String }
-    ->
-        { onBrowserInternal : Url.Url -> b
-        , onBrowserExternal : String -> b
-        , onDecodeSucceeded : a -> b
-        , onDecodeFailed : Json.Decode.Error -> b
-        }
-    -> Json.Decode.Decoder a
-    -> Browser.UrlRequest
-    -> b
-toHandleEncodedUrlRequest path { onBrowserInternal, onBrowserExternal, onDecodeSucceeded, onDecodeFailed } decoder request =
-    case request of
-        Browser.Internal url ->
-            onBrowserInternal url
-
-        Browser.External someExternalUrl ->
-            case toParseHref path someExternalUrl of
-                Nothing ->
-                    onBrowserExternal someExternalUrl
-
-                Just jsonStr ->
-                    case Json.Decode.decodeString decoder jsonStr of
-                        Err decodeErr ->
-                            onDecodeFailed decodeErr
-
-                        Ok hellYeah ->
-                            onDecodeSucceeded hellYeah
 
 
 toParseHref : { path : String } -> String -> Maybe String
@@ -300,10 +175,35 @@ toToken path =
 --
 
 
+{-| -}
 batch :
     { onBrowserInternal : Url.Url -> a, onBrowserExternal : String -> a }
     -> List (Browser.UrlRequest -> Result Browser.UrlRequest a)
     -> Browser.UrlRequest
     -> a
 batch { onBrowserInternal, onBrowserExternal } matchers bUrlRequest =
-    Debug.todo ""
+    let
+        matchResult =
+            List.Extra.stoppableFoldl
+                (\stepMatcher acc ->
+                    case stepMatcher bUrlRequest of
+                        Ok parsed ->
+                            List.Extra.Stop (Ok parsed)
+
+                        Err _ ->
+                            List.Extra.Continue acc
+                )
+                (Err bUrlRequest)
+                matchers
+    in
+    case matchResult of
+        Err bur ->
+            case bur of
+                Browser.Internal url ->
+                    onBrowserInternal url
+
+                Browser.External str ->
+                    onBrowserExternal str
+
+        Ok parsed ->
+            parsed
