@@ -13,6 +13,21 @@
         var app = Elm.Main.init({
             node: document.getElementById('app')
         });
+
+        // Modal dialog ports
+        app.ports.openDialog.subscribe(function(dialogId) {
+            var dialog = document.getElementById(dialogId);
+            if (dialog) {
+                dialog.showModal();
+            }
+        });
+
+        app.ports.closeDialog.subscribe(function(dialogId) {
+            var dialog = document.getElementById(dialogId);
+            if (dialog) {
+                dialog.close();
+            }
+        });
     </script>
 </body>
 </html>
