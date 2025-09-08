@@ -65,7 +65,7 @@ onEncodedUrlRequest decoder request =
 
         Browser.External someExternalUrl ->
             Result.mapError (always request) <|
-                parseDecodeHref decoder someExternalUrl
+                parseDecodeHref decoder (Debug.log "onEncodedUrlRequest: someExternalUrl" someExternalUrl)
 
 
 {-| -}

@@ -13,8 +13,8 @@ type alias Value =
     }
 
 
-colors : List ( String, Value )
-colors =
+values : List ( String, Value )
+values =
     [ ( "Modern"
       , { background = "bg-blue-600"
         , text = "text-white"
@@ -31,6 +31,11 @@ colors =
         }
       )
     ]
+
+
+withDefault : Maybe Value -> Value
+withDefault =
+    Maybe.withDefault { background = "", text = "" }
 
 
 applyTheme : Value -> Browser.Document msg -> Browser.Document msg

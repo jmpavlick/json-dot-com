@@ -88,14 +88,15 @@ subscriptions model =
 
 view : Model -> Browser.Document Msg
 view model =
-    { title = "hello"
-    , body =
-        [ div [] [ text "elm is a pl that i like" ]
-        , a [ href "#warble" ] [ text "click the warble" ]
-        , div [] [ text <| Debug.toString model.url ]
-        , div [] [ text <| Debug.toString model.xorSet ]
-        , Modal.launcher { label = "Show modal" }
-            "This is a modal"
-            [ div [] [ text "This is some content", ColorPicker.view model ] ]
-        ]
-    }
+    Color.applyTheme (Color.withDefault model.colorPicker.selectedColor) <|
+        { title = "hello"
+        , body =
+            [ div [] [ text "elm is a pl that i like" ]
+            , a [ href "#warble" ] [ text "click the warble" ]
+            , div [] [ text <| Debug.toString model.url ]
+            , div [] [ text <| Debug.toString model.xorSet ]
+            , Modal.launcher { label = "Show modal" }
+                "This is a modal"
+                [ div [] [ text "This is some content", ColorPicker.view model ] ]
+            ]
+        }
