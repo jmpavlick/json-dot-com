@@ -86,7 +86,8 @@ view model =
         , a [ href "#warble" ] [ text "click the warble" ]
         , div [] [ text <| Debug.toString model.url ]
         , div [] [ text <| Debug.toString model.xorSet ]
-        , Modal.launcher "This is a modal"
+        , Modal.launcher { label = "Show modal" }
+            "This is a modal"
             [ div [] [ text "This is its content" ] ]
         ]
     }

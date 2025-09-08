@@ -19,11 +19,6 @@ hideKey =
     "close-big-ol-modal"
 
 
-stopPropogationKey : String
-stopPropogationKey =
-    "clicked-non-interactive-content-on-big-ol-modal"
-
-
 
 -- VIEW
 
@@ -34,22 +29,23 @@ view title body =
         [ id showKey
         , class "p-0 bg-transparent border-0 max-w-none w-full h-full backdrop:bg-transparent"
         ]
-        [ -- Backdrop (clickable to close, fills the dialog)
+        [ -- backdrop (clickable to close, fills the dialog)
           a
             [ Json.DotCom.href hideKey
             , class "fixed inset-0 bg-black bg-opacity-50"
             ]
             []
-        , -- Modal content (positioned over backdrop)
+        , -- modal content (positioned over backdrop); if this isn't a sibling of the backdrop,
+          -- the href will bubble up and that will be a bad time for everyone
           div
             [ class "fixed inset-0 flex items-center justify-center pointer-events-none" ]
             [ div
                 [ class "bg-white rounded-lg shadow-xl mx-4 max-w-md w-full max-h-screen overflow-hidden pointer-events-auto" ]
-                [ -- Header
+                [ -- header
                   div
                     [ class "px-6 py-4 border-b border-gray-200" ]
                     [ h3 [ class "text-lg font-semibold text-gray-900" ] [ text title ] ]
-                , -- Body
+                , -- body
                   div
                     [ class "px-6 py-4 overflow-y-auto" ]
                     body
@@ -58,10 +54,10 @@ view title body =
         ]
 
 
-launcher : String -> List (Html msg) -> Html msg
-launcher title body =
+launcher : { label : String } -> String -> List (Html msg) -> Html msg
+launcher { label } title body =
     div []
-        [ a [ Json.DotCom.href showKey ] [ text "Edit" ]
+        [ a [ Json.DotCom.href showKey ] [ text label ]
         , view title body
         ]
 
@@ -70,22 +66,15 @@ launcher title body =
 -- LIFECYCLE
 
 
-type alias App x =
-    { x | xorSet : Set String }
-
-
-onUrlRequest : App x -> Browser.UrlRequest -> Result Browser.UrlRequest ( App x, Cmd msg )
-onUrlRequest app =
+onUrlRequest : model -> Browser.UrlRequest -> Result Browser.UrlRequest ( model, Cmd msg )
+onUrlRequest model =
     Json.DotCom.onUrlRequest
         (\str ->
             if str == showKey then
-                Just ( app, openDialog showKey )
+                Just ( model, openDialog showKey )
 
             else if str == hideKey then
-                Just ( app, closeDialog showKey )
-
-            else if str == stopPropogationKey then
-                Just ( app, Cmd.none )
+                Just ( model, closeDialog showKey )
 
             else
                 Nothing
