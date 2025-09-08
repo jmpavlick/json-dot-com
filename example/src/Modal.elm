@@ -40,14 +40,14 @@ view title body =
           div
             [ class "fixed inset-0 flex items-center justify-center pointer-events-none" ]
             [ div
-                [ class "bg-white rounded-lg shadow-xl mx-4 max-w-md w-full max-h-screen overflow-hidden pointer-events-auto" ]
+                [ class "bg-white rounded-lg shadow-xl w-1/2 h-1/2 overflow-visible pointer-events-auto flex flex-col" ]
                 [ -- header
                   div
                     [ class "px-6 py-4 border-b border-gray-200" ]
                     [ h3 [ class "text-lg font-semibold text-gray-900" ] [ text title ] ]
                 , -- body
                   div
-                    [ class "px-6 py-4 overflow-y-auto" ]
+                    [ class "px-6 py-4 overflow-y-auto flex-1" ]
                     body
                 ]
             ]
