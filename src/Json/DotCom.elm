@@ -72,7 +72,8 @@ onUrlRequest matcher request =
                 maybeMatch : Maybe a
                 maybeMatch =
                     Maybe.andThen matcher <|
-                        parseHref someExternalUrl
+                        Debug.log "parsed" <|
+                            parseHref someExternalUrl
             in
             case maybeMatch of
                 Nothing ->

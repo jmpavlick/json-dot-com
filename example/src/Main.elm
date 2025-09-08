@@ -2,6 +2,7 @@ module Main exposing (..)
 
 import Browser
 import Browser.Navigation
+import ColorPicker
 import Endo exposing (Endo)
 import Html exposing (..)
 import Html.Attributes exposing (href)
@@ -66,7 +67,9 @@ update msg model =
                 { onBrowserInternal = \url -> ( { model | url = url }, Browser.Navigation.pushUrl model.key (Url.toString url) )
                 , onBrowserExternal = \str -> ( model, Browser.Navigation.load str )
                 }
-                [ Modal.onUrlRequest model ]
+                [ Modal.onUrlRequest model
+                , ColorPicker.onUrlRequest model
+                ]
                 urlRequest
 
         OnUrlChange url ->
@@ -88,6 +91,6 @@ view model =
         , div [] [ text <| Debug.toString model.xorSet ]
         , Modal.launcher { label = "Show modal" }
             "This is a modal"
-            [ div [] [ text "This is its content" ] ]
+            [ div [] [ text "This is some content", ColorPicker.view model ] ]
         ]
     }

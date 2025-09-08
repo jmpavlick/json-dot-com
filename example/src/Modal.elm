@@ -1,4 +1,4 @@
-port module Modal exposing (launcher, onUrlRequest, view)
+port module Modal exposing (launcher, onUrlRequest)
 
 -- don't panic
 
