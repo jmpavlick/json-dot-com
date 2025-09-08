@@ -1,16 +1,90 @@
 module Json.DotCom exposing
-    ( Handler
-    , encodeAsHref, href
+    ( encodeAsHref, href
+    , Handler
     , onUrlRequest, onEncodedUrlRequest
-    , batch, handle
+    , handle, batch
     )
 
 {-|
 
 
-# IT'S JSON DOT COM BABY
+## Another Elm package that could've been a blog post
 
-@docs Handler
+I was reading the `elm/browser` docs the other night (as one does), and I noticed something in the [description of the `UrlRequest` type][UrlRequest docs] that I'd never noticed before (emphasis mine):
+
+> All links in an [`application`](#application) create a `UrlRequest`. So
+> when you click `<a href="/home">Home</a>`, **it does not just navigate!** It
+> notifies `onUrlRequest` that the user wants to change the `Url`.
+
+In 99.99999% of Elm apps that I've seen, there's a section of the toplevel `update` loop that looks like this:
+
+    update msg model =
+        case msg of
+            LinkClicked urlRequest ->
+                case urlRequest of
+                    Browser.Internal url ->
+                        ( model, Browser.Navigation.pushUrl model.key (Url.toString url))
+
+                    Browser.External str ->
+                        ( model, Browser.Navigation.load str )
+
+            UrlChanged url ->
+                ( { model | url = url }
+                , ...
+                )
+
+            ...
+
+... which matches up to:
+
+    main =
+        Browser.application
+            { onUrlRequest : LinkClicked
+            , onUrlChange : UrlChanged
+            ...
+
+I've always wondered - why bother with having two handlers? We clicked a link, we got a `Url.Url`, which I am going to immediately call `Url.toString` on anyway and then navigate somewhere. For some reason, I need two variants on my toplevel `Msg` type for this. Seems redundant. Whatever. Felt like a bunch of ceremony for Evan Reasons.
+
+But the bit about
+
+> **it does not just navigate!**
+
+caused some neuron activation. I had a Realization.
+
+---
+
+When I worked at Vendr, we had a `Ui.elm` module that was like... an ad-hoc implementation of `mdgriffith/elm-ui` 1.5 combined with a type alias
+
+    type alias Html msg =
+        Html (GlobalMsg msg)
+
+for a type `GlobalMsg msg` that was defined something like
+
+    type GlobalMsg msg
+        = PageMsg msg
+        | ModalMsg Modal.Msg
+        | DropdownMsg Dropdown.Msg
+        ...
+
+so that we could have "globally-available" events, which could then be baked in to modules such as `Ui.Modal`, whose `view` function returned a `Ui.Html msg`. However, the `GlobalMsg` was in a module `GlobalMsg.elm`, and was imported by a module `Update.elm`, and as I'm sure you can imagine, we sometimes needed to perform effects / run `Cmd msg`s with our global handlers, so widening the `GlobalMsg msg` type would cause cascading compiler errors in multiple modules.
+
+And of course, I am dramatically over-simplifying the nature of the thing; there was More To It (there always is), and some of these `update` functions were thousands of lines long. Those are always uncomfortable to change, because without exhausting amounts of let-decl-to-`Debug.todo`-ing, you're _going to_ get the type of something halfway through a 8-line composition wrong and it's going to blow the whole thing red as the LSP howls and your hot-reloader's error overlay's scrollbar shinks to a size too small to click on the first try.
+
+I was getting ready to take a deep breath and dive back into those murky waters (instead of shipping my own SaaS product, I am once again trying to re-invent the idea of a flexible, composable components library), when I read the words
+
+> **it does not just navigate!**
+
+and then I was enlightened.
+
+
+## We already have a `GlobalMsg msg`, it's already part of the platform
+
+---
+
+From a certain point of view, using a capital-M `Msg` type as the shape of events that can be emitted by a TEA structure is just a way of using the type system to guarantee that every Thing that you can Do, has a well-formed name and type. But it's not the _only_ way.
+
+[UrlRequest docs]: https://package.elm-lang.org/packages/elm/browser/latest/Browser#UrlRequest
+[application]: https://package.elm-lang.org/packages/elm/browser/latest/Browser#application
 
 
 # Make hrefs
@@ -20,12 +94,13 @@ module Json.DotCom exposing
 
 # Build handlers
 
+@docs Handler
 @docs onUrlRequest, onEncodedUrlRequest
 
 
 # Apply handlers
 
-@docs batch, handle
+@docs handle, batch
 
 -}
 
