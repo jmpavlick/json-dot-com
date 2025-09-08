@@ -11193,7 +11193,7 @@ var $author$project$Json$DotCom$batch = F3(
 	});
 var $elm$browser$Browser$Navigation$load = _Browser_load;
 var $author$project$Modal$closeDialog = _Platform_outgoingPort('closeDialog', $elm$json$Json$Encode$string);
-var $author$project$Modal$key = 'big-ol-modal';
+var $author$project$Modal$hideKey = 'close-big-ol-modal';
 var $elm$core$Maybe$andThen = F2(
 	function (callback, maybeValue) {
 		if (maybeValue.$ === 'Just') {
@@ -11203,6 +11203,7 @@ var $elm$core$Maybe$andThen = F2(
 			return $elm$core$Maybe$Nothing;
 		}
 	});
+var $elm$core$Debug$log = _Debug_log;
 var $elm$parser$Parser$Advanced$Parser = function (a) {
 	return {$: 'Parser', a: a};
 };
@@ -11329,6 +11330,11 @@ var $elm$parser$Parser$Advanced$ignorer = F2(
 		return A3($elm$parser$Parser$Advanced$map2, $elm$core$Basics$always, keepParser, ignoreParser);
 	});
 var $elm$parser$Parser$ignorer = $elm$parser$Parser$Advanced$ignorer;
+var $elm$parser$Parser$Advanced$keeper = F2(
+	function (parseFunc, parseArg) {
+		return A3($elm$parser$Parser$Advanced$map2, $elm$core$Basics$apL, parseFunc, parseArg);
+	});
+var $elm$parser$Parser$keeper = $elm$parser$Parser$Advanced$keeper;
 var $elm$parser$Parser$DeadEnd = F3(
 	function (row, col, problem) {
 		return {col: col, problem: problem, row: row};
@@ -11462,15 +11468,18 @@ var $author$project$Json$DotCom$parseHref = function (hrefStr) {
 	return $elm$core$Result$toMaybe(
 		A2(
 			$elm$parser$Parser$run,
-			$elm$parser$Parser$getChompedString(
+			A2(
+				$elm$parser$Parser$keeper,
 				A2(
 					$elm$parser$Parser$ignorer,
+					$elm$parser$Parser$succeed($elm$core$Basics$identity),
+					$elm$parser$Parser$token($author$project$Json$DotCom$token)),
+				$elm$parser$Parser$getChompedString(
 					A2(
 						$elm$parser$Parser$ignorer,
 						$elm$parser$Parser$succeed(_Utils_Tuple0),
-						$elm$parser$Parser$token($author$project$Json$DotCom$token)),
-					$elm$parser$Parser$chompWhile(
-						$elm$core$Basics$always(true)))),
+						$elm$parser$Parser$chompWhile(
+							$elm$core$Basics$always(true))))),
 			hrefStr));
 };
 var $author$project$Json$DotCom$onUrlRequest = F2(
@@ -11482,7 +11491,10 @@ var $author$project$Json$DotCom$onUrlRequest = F2(
 			var maybeMatch = A2(
 				$elm$core$Maybe$andThen,
 				matcher,
-				$author$project$Json$DotCom$parseHref(someExternalUrl));
+				A2(
+					$elm$core$Debug$log,
+					'match',
+					$author$project$Json$DotCom$parseHref(someExternalUrl)));
 			if (maybeMatch.$ === 'Nothing') {
 				return $elm$core$Result$Err(request);
 			} else {
@@ -11492,24 +11504,19 @@ var $author$project$Json$DotCom$onUrlRequest = F2(
 		}
 	});
 var $author$project$Modal$openDialog = _Platform_outgoingPort('openDialog', $elm$json$Json$Encode$string);
+var $author$project$Modal$showKey = 'show-big-ol-modal';
+var $author$project$Modal$stopPropogationKey = 'clicked-non-interactive-content-on-big-ol-modal';
 var $author$project$Modal$onUrlRequest = function (app) {
-	var xorSet = app.xorSet;
-	var update = A2($elm$core$Set$member, $author$project$Modal$key, xorSet) ? _Utils_Tuple2(
-		_Utils_update(
-			app,
-			{
-				xorSet: A2($elm$core$Set$remove, $author$project$Modal$key, xorSet)
-			}),
-		$author$project$Modal$closeDialog($author$project$Modal$key)) : _Utils_Tuple2(
-		_Utils_update(
-			app,
-			{
-				xorSet: A2($elm$core$Set$insert, $author$project$Modal$key, xorSet)
-			}),
-		$author$project$Modal$openDialog($author$project$Modal$key));
 	return $author$project$Json$DotCom$onUrlRequest(
 		function (str) {
-			return _Utils_eq(str, $author$project$Modal$key) ? $elm$core$Maybe$Nothing : $elm$core$Maybe$Just(update);
+			return _Utils_eq(str, $author$project$Modal$showKey) ? $elm$core$Maybe$Just(
+				_Utils_Tuple2(
+					app,
+					$author$project$Modal$openDialog($author$project$Modal$showKey))) : (_Utils_eq(str, $author$project$Modal$hideKey) ? $elm$core$Maybe$Just(
+				_Utils_Tuple2(
+					app,
+					$author$project$Modal$closeDialog($author$project$Modal$showKey))) : (_Utils_eq(str, $author$project$Modal$stopPropogationKey) ? $elm$core$Maybe$Just(
+				_Utils_Tuple2(app, $elm$core$Platform$Cmd$none)) : $elm$core$Maybe$Nothing));
 		});
 };
 var $elm$browser$Browser$Navigation$pushUrl = _Browser_pushUrl;
@@ -11594,6 +11601,97 @@ var $author$project$Main$update = F2(
 				$elm$core$Platform$Cmd$none);
 		}
 	});
+var $author$project$Json$DotCom$href = function (str) {
+	return $elm$html$Html$Attributes$href(
+		_Utils_ap($author$project$Json$DotCom$token, str));
+};
+var $elm$html$Html$h3 = _VirtualDom_node('h3');
+var $author$project$Modal$view = F2(
+	function (title, body) {
+		return A3(
+			$elm$html$Html$node,
+			'dialog',
+			_List_fromArray(
+				[
+					$elm$html$Html$Attributes$id($author$project$Modal$showKey),
+					$elm$html$Html$Attributes$class('p-0 bg-transparent border-0 max-w-none w-full h-full backdrop:bg-transparent')
+				]),
+			_List_fromArray(
+				[
+					A2(
+					$elm$html$Html$a,
+					_List_fromArray(
+						[
+							$author$project$Json$DotCom$href($author$project$Modal$hideKey),
+							$elm$html$Html$Attributes$class('fixed inset-0 bg-black bg-opacity-50')
+						]),
+					_List_Nil),
+					A2(
+					$elm$html$Html$div,
+					_List_fromArray(
+						[
+							$elm$html$Html$Attributes$class('fixed inset-0 flex items-center justify-center pointer-events-none')
+						]),
+					_List_fromArray(
+						[
+							A2(
+							$elm$html$Html$div,
+							_List_fromArray(
+								[
+									$elm$html$Html$Attributes$class('bg-white rounded-lg shadow-xl mx-4 max-w-md w-full max-h-screen overflow-hidden pointer-events-auto')
+								]),
+							_List_fromArray(
+								[
+									A2(
+									$elm$html$Html$div,
+									_List_fromArray(
+										[
+											$elm$html$Html$Attributes$class('px-6 py-4 border-b border-gray-200')
+										]),
+									_List_fromArray(
+										[
+											A2(
+											$elm$html$Html$h3,
+											_List_fromArray(
+												[
+													$elm$html$Html$Attributes$class('text-lg font-semibold text-gray-900')
+												]),
+											_List_fromArray(
+												[
+													$elm$html$Html$text(title)
+												]))
+										])),
+									A2(
+									$elm$html$Html$div,
+									_List_fromArray(
+										[
+											$elm$html$Html$Attributes$class('px-6 py-4 overflow-y-auto')
+										]),
+									body)
+								]))
+						]))
+				]));
+	});
+var $author$project$Modal$launcher = F2(
+	function (title, body) {
+		return A2(
+			$elm$html$Html$div,
+			_List_Nil,
+			_List_fromArray(
+				[
+					A2(
+					$elm$html$Html$a,
+					_List_fromArray(
+						[
+							$author$project$Json$DotCom$href($author$project$Modal$showKey)
+						]),
+					_List_fromArray(
+						[
+							$elm$html$Html$text('Edit')
+						])),
+					A2($author$project$Modal$view, title, body)
+				]));
+	});
 var $elm$core$Debug$toString = _Debug_toString;
 var $author$project$Main$view = function (model) {
 	return {
@@ -11631,6 +11729,19 @@ var $author$project$Main$view = function (model) {
 					[
 						$elm$html$Html$text(
 						$elm$core$Debug$toString(model.xorSet))
+					])),
+				A2(
+				$author$project$Modal$launcher,
+				'This is a modal',
+				_List_fromArray(
+					[
+						A2(
+						$elm$html$Html$div,
+						_List_Nil,
+						_List_fromArray(
+							[
+								$elm$html$Html$text('This is its content')
+							]))
 					]))
 			]),
 		title: 'hello'

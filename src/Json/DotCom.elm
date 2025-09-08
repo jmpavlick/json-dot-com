@@ -72,7 +72,8 @@ onUrlRequest matcher request =
                 maybeMatch : Maybe a
                 maybeMatch =
                     Maybe.andThen matcher <|
-                        parseHref someExternalUrl
+                        Debug.log "match" <|
+                            parseHref someExternalUrl
             in
             case maybeMatch of
                 Nothing ->
@@ -129,10 +130,12 @@ parseHref : String -> Maybe String
 parseHref hrefStr =
     Result.toMaybe <|
         Parser.run
-            (Parser.getChompedString <|
-                Parser.succeed ()
-                    |. Parser.token token
-                    |. Parser.chompWhile (always True)
+            (Parser.succeed identity
+                |. Parser.token token
+                |= (Parser.getChompedString <|
+                        Parser.succeed ()
+                            |. Parser.chompWhile (always True)
+                   )
             )
             hrefStr
 
