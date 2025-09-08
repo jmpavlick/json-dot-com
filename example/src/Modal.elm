@@ -66,7 +66,7 @@ launcher { label } title body =
 -- LIFECYCLE
 
 
-onUrlRequest : model -> Browser.UrlRequest -> Result Browser.UrlRequest ( model, Cmd msg )
+onUrlRequest : model -> Json.DotCom.Handler ( model, Cmd msg )
 onUrlRequest model =
     Json.DotCom.onUrlRequest
         (\str ->

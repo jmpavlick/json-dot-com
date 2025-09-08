@@ -1,6 +1,7 @@
 module ColorPicker exposing (..)
 
 import Browser
+import Color
 import Dropdown
 import Html exposing (..)
 import Html.Attributes exposing (class)
@@ -9,7 +10,19 @@ import Set exposing (Set)
 
 
 type alias App x =
-    { x | xorSet : Set String }
+    { x
+        | xorSet : Set String
+        , colorPicker : Model
+    }
+
+
+type alias Model =
+    { selectedColor : Maybe Color.Value }
+
+
+init : Model
+init =
+    { selectedColor = Nothing }
 
 
 key : { name : String }
@@ -28,5 +41,12 @@ view app =
 
 
 onUrlRequest : App x -> Browser.UrlRequest -> Result Browser.UrlRequest ( App x, Cmd msg )
-onUrlRequest =
-    Dropdown.onUrlRequest key
+onUrlRequest ({ xorSet, colorPicker } as app) =
+    Json.DotCom.batch
+        [ \arg ->
+            Result.map (Tuple.mapFirst (\a -> { app | xorSet = a.xorSet })) <|
+                Dropdown.onUrlRequest
+                    key
+                    { xorSet = xorSet }
+                    arg
+        ]

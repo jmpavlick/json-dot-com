@@ -1,6 +1,5 @@
-module Dropdown exposing (..)
+module Dropdown exposing (onUrlRequest, view)
 
-import Browser
 import Html exposing (..)
 import Html.Attributes exposing (class, id, name, selected)
 import Json.DotCom
@@ -108,7 +107,7 @@ view args ({ xorSet } as app) options =
 -- LIFECYCLE
 
 
-onUrlRequest : { name : String } -> App x -> Browser.UrlRequest -> Result Browser.UrlRequest ( App x, Cmd msg )
+onUrlRequest : { name : String } -> App x -> Json.DotCom.Handler ( App x, Cmd msg )
 onUrlRequest { name } ({ xorSet } as app) =
     let
         isShowingKey : String

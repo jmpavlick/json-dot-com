@@ -32,6 +32,7 @@ init : () -> Url.Url -> Browser.Navigation.Key -> ( Model, Cmd Msg )
 init () url key =
     ( { key = key
       , xorSet = Set.empty
+      , colorPicker = ColorPicker.init
       , url = url
       }
     , Cmd.none
@@ -46,6 +47,7 @@ type Msg
 type alias Model =
     { key : Browser.Navigation.Key
     , xorSet : Set String
+    , colorPicker : ColorPicker.Model
     , url : Url.Url
     }
 
@@ -63,13 +65,15 @@ update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
         OnUrlRequest urlRequest ->
-            Json.DotCom.batch
+            Json.DotCom.handle
                 { onBrowserInternal = \url -> ( { model | url = url }, Browser.Navigation.pushUrl model.key (Url.toString url) )
                 , onBrowserExternal = \str -> ( model, Browser.Navigation.load str )
                 }
-                [ Modal.onUrlRequest model
-                , ColorPicker.onUrlRequest model
-                ]
+                (Json.DotCom.batch
+                    [ Modal.onUrlRequest model
+                    , ColorPicker.onUrlRequest model
+                    ]
+                )
                 urlRequest
 
         OnUrlChange url ->

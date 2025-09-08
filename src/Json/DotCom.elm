@@ -1,13 +1,16 @@
 module Json.DotCom exposing
-    ( encodeAsHref, href
+    ( Handler
+    , encodeAsHref, href
     , onUrlRequest, onEncodedUrlRequest
-    , batch
+    , batch, handle
     )
 
 {-|
 
 
 # IT'S JSON DOT COM BABY
+
+@docs Handler
 
 
 # Make hrefs
@@ -22,7 +25,7 @@ module Json.DotCom exposing
 
 # Apply handlers
 
-@docs batch
+@docs batch, handle
 
 -}
 
@@ -34,6 +37,11 @@ import Json.Encode
 import List.Extra
 import Parser exposing ((|.), (|=))
 import Url
+
+
+{-| -}
+type alias Handler a =
+    Browser.UrlRequest -> Result Browser.UrlRequest a
 
 
 {-| -}
@@ -49,7 +57,7 @@ encodeAsHref encoder value =
 
 
 {-| -}
-onEncodedUrlRequest : Json.Decode.Decoder a -> Browser.UrlRequest -> Result Browser.UrlRequest a
+onEncodedUrlRequest : Json.Decode.Decoder a -> Handler a
 onEncodedUrlRequest decoder request =
     case request of
         Browser.Internal _ ->
@@ -61,7 +69,7 @@ onEncodedUrlRequest decoder request =
 
 
 {-| -}
-onUrlRequest : (String -> Maybe a) -> Browser.UrlRequest -> Result Browser.UrlRequest a
+onUrlRequest : (String -> Maybe a) -> Handler a
 onUrlRequest matcher request =
     case request of
         Browser.Internal _ ->
@@ -84,27 +92,25 @@ onUrlRequest matcher request =
 
 
 {-| -}
-batch :
-    { onBrowserInternal : Url.Url -> a, onBrowserExternal : String -> a }
-    -> List (Browser.UrlRequest -> Result Browser.UrlRequest a)
-    -> Browser.UrlRequest
-    -> a
-batch { onBrowserInternal, onBrowserExternal } matchers bUrlRequest =
-    let
-        matchResult =
-            List.Extra.stoppableFoldl
-                (\stepMatcher acc ->
-                    case stepMatcher bUrlRequest of
-                        Ok parsed ->
-                            List.Extra.Stop (Ok parsed)
+batch : List (Handler a) -> Handler a
+batch matchers bUrlRequest =
+    List.Extra.stoppableFoldl
+        (\stepMatcher acc ->
+            case stepMatcher bUrlRequest of
+                Ok parsed ->
+                    List.Extra.Stop (Ok parsed)
 
-                        Err _ ->
-                            List.Extra.Continue acc
-                )
-                (Err bUrlRequest)
-                matchers
-    in
-    case matchResult of
+                Err _ ->
+                    List.Extra.Continue acc
+        )
+        (Err bUrlRequest)
+        matchers
+
+
+{-| -}
+handle : { onBrowserInternal : Url.Url -> a, onBrowserExternal : String -> a } -> Handler a -> Browser.UrlRequest -> a
+handle { onBrowserInternal, onBrowserExternal } matcher bUrlRequest =
+    case matcher bUrlRequest of
         Err bur ->
             case bur of
                 Browser.Internal url ->
