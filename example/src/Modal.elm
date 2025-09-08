@@ -40,7 +40,7 @@ view title body =
           div
             [ class "fixed inset-0 flex items-center justify-center pointer-events-none" ]
             [ div
-                [ class "bg-white rounded-lg shadow-xl w-1/2 h-1/2 overflow-visible pointer-events-auto flex flex-col" ]
+                [ class "bg-white rounded-lg shadow-xl w-1/4 h-1/4 overflow-visible pointer-events-auto flex flex-col" ]
                 [ -- header
                   div
                     [ class "px-6 py-4 border-b border-gray-200" ]
