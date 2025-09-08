@@ -1,4 +1,4 @@
-port module Modal exposing (..)
+port module Modal exposing (launcher, onUrlRequest, view)
 
 -- don't panic
 
@@ -9,13 +9,13 @@ import Json.DotCom
 import Set exposing (Set)
 
 
-showKey : String
-showKey =
+openDialogKey : String
+openDialogKey =
     "show-big-ol-modal"
 
 
-hideKey : String
-hideKey =
+closeDialogKey : String
+closeDialogKey =
     "close-big-ol-modal"
 
 
@@ -26,12 +26,12 @@ hideKey =
 view : String -> List (Html msg) -> Html msg
 view title body =
     node "dialog"
-        [ id showKey
+        [ id openDialogKey
         , class "p-0 bg-transparent border-0 max-w-none w-full h-full backdrop:bg-transparent"
         ]
         [ -- backdrop (clickable to close, fills the dialog)
           a
-            [ Json.DotCom.href hideKey
+            [ Json.DotCom.href closeDialogKey
             , class "fixed inset-0 bg-black bg-opacity-50"
             ]
             []
@@ -57,7 +57,7 @@ view title body =
 launcher : { label : String } -> String -> List (Html msg) -> Html msg
 launcher { label } title body =
     div []
-        [ a [ Json.DotCom.href showKey ] [ text label ]
+        [ a [ Json.DotCom.href openDialogKey ] [ text label ]
         , view title body
         ]
 
@@ -70,11 +70,11 @@ onUrlRequest : model -> Browser.UrlRequest -> Result Browser.UrlRequest ( model,
 onUrlRequest model =
     Json.DotCom.onUrlRequest
         (\str ->
-            if str == showKey then
-                Just ( model, openDialog showKey )
+            if str == openDialogKey then
+                Just ( model, openDialog openDialogKey )
 
-            else if str == hideKey then
-                Just ( model, closeDialog showKey )
+            else if str == closeDialogKey then
+                Just ( model, closeDialog openDialogKey )
 
             else
                 Nothing

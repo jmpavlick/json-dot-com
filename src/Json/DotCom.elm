@@ -136,7 +136,7 @@ parseHref hrefStr =
                             |. Parser.chompWhile (always True)
                    )
             )
-            hrefStr
+            (Maybe.withDefault hrefStr <| Url.percentDecode hrefStr)
 
 
 parseDecodeHref : Json.Decode.Decoder a -> String -> Result Json.Decode.Error a
