@@ -60,28 +60,25 @@ encodeAsHref encoder value =
 onEncodedUrlRequest : Json.Decode.Decoder a -> Handler a
 onEncodedUrlRequest decoder request =
     case request of
-        Browser.Internal _ ->
-            Err request
-
-        Browser.External someExternalUrl ->
+        Browser.Internal someInternalUrl ->
+            --Err request
             Result.mapError (always request) <|
-                parseDecodeHref decoder (Debug.log "onEncodedUrlRequest: someExternalUrl" someExternalUrl)
+                parseDecodeHref decoder someInternalUrl
+
+        Browser.External _ ->
+            Err request
 
 
 {-| -}
 onUrlRequest : (String -> Maybe a) -> Handler a
 onUrlRequest matcher request =
     case request of
-        Browser.Internal _ ->
-            Err request
-
-        Browser.External someExternalUrl ->
+        Browser.Internal someInternalUrl ->
             let
                 maybeMatch : Maybe a
                 maybeMatch =
                     Maybe.andThen matcher <|
-                        Debug.log "parsed" <|
-                            parseHref someExternalUrl
+                        parseHref someInternalUrl
             in
             case maybeMatch of
                 Nothing ->
@@ -89,6 +86,9 @@ onUrlRequest matcher request =
 
                 Just a ->
                     Ok a
+
+        Browser.External _ ->
+            Err request
 
 
 {-| -}
@@ -129,31 +129,36 @@ handle { onBrowserInternal, onBrowserExternal } matcher bUrlRequest =
 
 token : String
 token =
-    "https://json.com/"
+    "/λ/"
 
 
-parseHref : String -> Maybe String
-parseHref hrefStr =
-    Result.toMaybe <|
-        Parser.run
-            (Parser.succeed identity
-                |. Parser.token token
-                |= (Parser.getChompedString <|
-                        Parser.succeed ()
-                            |. Parser.chompWhile (always True)
-                   )
-            )
-            (Maybe.withDefault hrefStr <| Url.percentDecode hrefStr)
+parseHref : Url.Url -> Maybe String
+parseHref { path } =
+    Maybe.andThen
+        (Result.toMaybe
+            << Parser.run
+                (Parser.succeed identity
+                    |. Parser.token token
+                    |= (Parser.getChompedString <|
+                            Parser.succeed ()
+                                |. Parser.chompWhile (always True)
+                       )
+                )
+        )
+        (Url.percentDecode path)
 
 
-parseDecodeHref : Json.Decode.Decoder a -> String -> Result Json.Decode.Error a
-parseDecodeHref decoder hrefStr =
-    case parseHref hrefStr of
+parseDecodeHref : Json.Decode.Decoder a -> Url.Url -> Result Json.Decode.Error a
+parseDecodeHref decoder url =
+    case parseHref url of
         Nothing ->
             Err <|
                 Json.Decode.Failure
-                    "The input string was not a valid json-dot-com-encoded value. I couldn't find 'https://json.com/' anywhere!"
-                    (Json.Encode.string hrefStr)
+                    ("The input string was not a valid json-dot-com-encoded value. I couldn't find '"
+                        ++ token
+                        ++ "' anywhere!"
+                    )
+                    (Json.Encode.string (Url.toString url))
 
         Just jsonStr ->
             Json.Decode.decodeString decoder jsonStr
