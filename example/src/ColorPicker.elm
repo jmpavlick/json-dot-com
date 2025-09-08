@@ -43,10 +43,8 @@ view app =
 onUrlRequest : App x -> Browser.UrlRequest -> Result Browser.UrlRequest ( App x, Cmd msg )
 onUrlRequest ({ xorSet, colorPicker } as app) =
     Json.DotCom.batch
-        [ \arg ->
-            Result.map (Tuple.mapFirst (\a -> { app | xorSet = a.xorSet })) <|
-                Dropdown.onUrlRequest
-                    key
-                    { xorSet = xorSet }
-                    arg
+        [ Result.map (Tuple.mapFirst (\a -> { app | xorSet = a.xorSet }))
+            << Dropdown.onUrlRequest
+                key
+                { xorSet = xorSet }
         ]

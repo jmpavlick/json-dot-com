@@ -2,10 +2,11 @@ module Main exposing (..)
 
 import Browser
 import Browser.Navigation
+import Color
 import ColorPicker
 import Endo exposing (Endo)
 import Html exposing (..)
-import Html.Attributes exposing (href)
+import Html.Attributes exposing (href, style)
 import Json.DotCom
 import Modal
 import Set exposing (Set)
